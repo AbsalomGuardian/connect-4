@@ -28,7 +28,7 @@ public:
     }
     int getColumn() { return _column; }
     int getRow() { return _row; }
-    int getSquareIndex() { return _row * 8 + _column; }
+    int getSquareIndex() { return _row * 7 + _column; } //originally * 8. if grid is zero indexed, this is correct
 
 private:
     ImVec4 Lerp(ImVec4 a, ImVec4 b, float t)

@@ -3,7 +3,8 @@
 #include "classes/TicTacToe.h"
 #include "classes/Checkers.h"
 #include "classes/Othello.h"
-
+#include "classes/Connect4.h"
+#include "classes/Logger.h"
 namespace ClassGame {
         //
         // our global variables
@@ -16,6 +17,7 @@ namespace ClassGame {
         // game starting point
         // this is called by the main render loop in main.cpp
         //
+        Logger* logger = Logger::getInstance();
         void GameStartUp() 
         {
             game = nullptr;
@@ -30,7 +32,7 @@ namespace ClassGame {
                 ImGui::DockSpaceOverViewport();
 
                 //ImGui::ShowDemoWindow();
-
+                logger->ShowLogWindow();
                 ImGui::Begin("Settings");
 
                 if (gameOver) {
@@ -56,6 +58,10 @@ namespace ClassGame {
                         game = new Othello();
                         game->setUpBoard();
                     }
+                    if (ImGui::Button("Start Connect 4")) {
+                        game = new Connect4();
+                        game->setUpBoard();
+                    }
                 } else {
                     ImGui::Text("Current Player Number: %d", game->getCurrentPlayer()->playerNumber());
                     ImGui::Text("Current Board State: %s", game->stateString().c_str());
@@ -64,6 +70,9 @@ namespace ClassGame {
 
                 ImGui::Begin("GameWindow");
                 if (game) {
+                    Player *test = game->getCurrentPlayer();
+                    bool test2 = game->getCurrentPlayer()->isAIPlayer();
+                    //i don't think the game knows how to get who the player is
                     if (game->gameHasAI() && (game->getCurrentPlayer()->isAIPlayer() || game->_gameOptions.AIvsAI))
                     {
                         game->updateAI();
@@ -80,6 +89,8 @@ namespace ClassGame {
         void EndOfTurn() 
         {
             Player *winner = game->checkForWinner();
+            //printf("WARNING: you have commented out checkforWinner and checkForDraw in application.cpp\n");
+            //Player *winner = nullptr;
             if (winner)
             {
                 gameOver = true;

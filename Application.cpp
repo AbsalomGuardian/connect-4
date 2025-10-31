@@ -34,7 +34,6 @@ namespace ClassGame {
                 //ImGui::ShowDemoWindow();
                 logger->ShowLogWindow();
                 ImGui::Begin("Settings");
-
                 if (gameOver) {
                     ImGui::Text("Game Over!");
                     ImGui::Text("Winner: %d", gameWinner);
@@ -58,9 +57,17 @@ namespace ClassGame {
                         game = new Othello();
                         game->setUpBoard();
                     }
-                    if (ImGui::Button("Start Connect 4")) {
+                    if (ImGui::Button("Start Connect 4 AI First")) {
+                        logger->LogGameEvent("Would you like to play a game?");
                         game = new Connect4();
                         game->setUpBoard();
+                        game->setAIPlayer(0);
+                    }
+                    if (ImGui::Button("Start Connect 4 AI Second")) {
+                        logger->LogGameEvent("Would you like to play a game?");
+                        game = new Connect4();
+                        game->setUpBoard();
+                        game->setAIPlayer(1);
                     }
                 } else {
                     ImGui::Text("Current Player Number: %d", game->getCurrentPlayer()->playerNumber());
@@ -95,10 +102,16 @@ namespace ClassGame {
             {
                 gameOver = true;
                 gameWinner = winner->playerNumber();
+                if(winner->isAIPlayer()) {
+                    logger->LogGameEvent("I have won.");
+                } else {
+                    logger->LogGameEvent("Opponent has won.");
+                }
             }
             if (game->checkForDraw()) {
                 gameOver = true;
                 gameWinner = -1;
+                logger->LogGameEvent("I see we have played to a draw.");
             }
         }
 }

@@ -10,7 +10,7 @@ public:
     // set up the board
     void        setUpBoard() override;
     int         checkDirection(ChessSquare* square, Player* owner, int index, int counter, int direction, Grid *grid);
-    int         checkDirectionString(int index, int counter, int owner, int direction, const string &s);
+    int         checkDirectionString(int index, int counter, char owner, int direction, const std::string &s);
     Player*     checkForWinner() override;
     bool        checkForDraw() override;
     std::string initialStateString() override;

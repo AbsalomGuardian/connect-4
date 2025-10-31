@@ -7,7 +7,7 @@ using namespace std;
 Connect4::Connect4()
 {
     _grid = new Grid(7, 6);
-    _gameOptions.AIMAXDepth = 3;
+    _gameOptions.AIMAXDepth = 6;
 }
 
 Connect4::~Connect4()
@@ -35,10 +35,6 @@ void Connect4::setUpBoard()
     _gameOptions.rowY = 6;
     _grid->initializeSquares(80, "square.png");
 
-    if (gameHasAI()) {
-        setAIPlayer(AI_PLAYER);
-    }
-
     startGame();
 }
 
@@ -57,10 +53,10 @@ int Connect4::findLowest(int x) {
             return i;
         }
     }
-    //exception catch case that I don't see how it should ever happen
-    Logger* L = Logger::getInstance();
-    L->LogError("findLowest() failed to find a valid result.");
-    return 0;
+    //exception catch case, happens when using findLowest for ValidMoves()
+    //Logger* L = Logger::getInstance();
+    //L->LogError("findLowest() failed to find a valid result.");
+    return -1;
 }
 
 //overload of findLowest that uses state strings isntead
@@ -74,7 +70,7 @@ int Connect4::findLowest(int x, const string &s) {
             return i;
         }
     }
-    return NULL;
+    return -1;
 
 }
 
@@ -169,9 +165,9 @@ Player* Connect4::ownerAt(int index, Grid *grid) const
 //Direction index system: 0 = north; 1 = east; 2 = south; 3 = west; 4 = up-left; 5 = up-right; 6 = bottom-right; 7 = bottom-left
 //returns the amount found in a row for use by AI
 int Connect4::checkDirection(ChessSquare* square, Player* owner, int index, int counter, int direction, Grid *grid) {
-    Logger* L = Logger::getInstance();
-    L->LogInfo("Called by index " + to_string(index) + " starting with counter of " + to_string(counter) + 
-    " to check direction " + to_string(direction));
+    //Logger* L = Logger::getInstance();
+    //L->LogInfo("Called by index " + to_string(index) + " starting with counter of " + to_string(counter) + 
+    //" to check direction " + to_string(direction));
     //call from outside should start with counter = 1.
     int x = square->getColumn();
     int y = square->getRow();
@@ -192,53 +188,109 @@ int Connect4::checkDirection(ChessSquare* square, Player* owner, int index, int 
         if(ownerAt(nextIndex, grid) == owner) { //is n held by owner
             //L->LogInfo("next is held by the same player as origin");
             counter++;
-            L->LogGameEvent("counter has become " + to_string(counter));
+            //L->LogGameEvent("counter has become " + to_string(counter));
             if(counter == 4) { //has a four in a row been found. base case for the recursion
                 return 4;
             }
             //call check direction on next
             int result = checkDirection(next, owner, next->getSquareIndex(), counter, direction, grid);
-            L->LogGameEvent("result returned up recursion is " + to_string(result)); 
+            //L->LogGameEvent("result returned up recursion is " + to_string(result)); 
             if(result == 4) {
                 return 4;
             }
             //pass result up the call stack. a call either goes deeper, eventually reaching true or returns false
             return result;
         } else {
-            L->LogInfo("next is held by a different player");
+            //L->LogInfo("next is held by a different player");
             return counter;
         }
     } else {
-        L->LogInfo("next does not exist.");
+        //L->LogInfo("next does not exist.");
         return counter;
     }
 }
 
 //check direction done based on state string
 //owner is the number in the actual state string
-int Connect4::checkDirectionString(int index, int counter, int owner, int direction, const string &s) {
-    Logger *L = Logger::getInstance();
+int Connect4::checkDirectionString(int index, int counter, char owner, int direction, const string &s) {
+    //Logger *L = Logger::getInstance();
+    //L->LogInfo("Called by index " + to_string(index) + " starting with counter of " + to_string(counter) + 
+    //" to check direction " + to_string(direction));
     int x = index % 7;
     int y = index / 7;
 
-    int next = NULL; //next is the index of the place found
+    int next = -1; //next is the index of the place found
     if(direction == 0) {
         //check north
+        if(y != 0) { //if not top row, next is -7
+            next = index - 7;
+        }
     } else if(direction == 1) {
-        //check eat
+        //check east
+        if(x != 6) { //if not rightmost column, next = index + 1
+            next = index + 1;
+        }
     }else if(direction == 2) {
         //check south
+        if(y != 5) {
+            next = index + 7;
+        }
     }else if(direction == 3) {
         //check west
+        if(x != 0) {
+            next = index - 1;
+        }
     } else if(direction == 4) {
         //check north west
-
+        if(x != 0 && y != 0) {
+            next = (index - 7) -1;
+        }
     } else if(direction == 5) {
         //check north east
+        if(x != 6 && y != 0) {
+            next = (index - 7) + 1;
+        }
     }else if(direction == 6) {
         //check south east
+        if(x != 6 && y != 5) {
+            next = (index + 7) + 1;
+        }
     }else if(direction == 7) {
-        //check south east
+        //check south west
+        if(x != 0 && y != 5) {
+            next = (index + 7) - 1;
+        }
+    }
+
+    if(next != -1) { //does next exist
+        //L->LogInfo("next is at index " + to_string(index));
+        if(s[next] == owner) { //is n held by owner
+            //L->LogInfo("next is held by the same player as origin");
+            counter++;
+            //L->LogGameEvent("counter has become " + to_string(counter));
+            if(counter == 4) { //has a four in a row been found. base case for the recursion
+                return counter;
+            }
+            //call check direction on next
+            int result = checkDirectionString(next, counter, owner, direction, s);
+            //L->LogGameEvent("result returned up recursion is " + to_string(result)); 
+            if(result == 4) {
+                return 4;
+            }
+            //pass result up the call stack. a call either goes deeper, eventually reaching true or returns false
+            return result;
+        } else {
+            if(s[next] == '0') {
+                //L->LogInfo("next is held by no-one");
+            } else {
+                //L->LogInfo("next is held by a different player");
+            } 
+            return counter;
+        }
+
+    } else {
+        //L->LogInfo("next does not exist");
+        return counter;
     }
 
 }
@@ -251,7 +303,7 @@ int Connect4::checkDirectionString(int index, int counter, int owner, int direct
 //returns pointer to the winning player, otherwise returns nullptr
 Player* Connect4::checkForWinner()
 {
-    Logger* L = Logger::getInstance();
+    //Logger* L = Logger::getInstance();
     //L->LogGameEvent("Checking for winner...");
     //L->LogGameEvent("***************");
     Player *winner = nullptr; //iterator prevents me from just returning from within
@@ -345,7 +397,7 @@ void Connect4::setStateString(const std::string &s)
 //overload of setStateString with specified grid
 void Connect4::setStateString(const std::string &s, Grid* grid)
 {
-    Logger *L = Logger::getInstance();
+    //Logger *L = Logger::getInstance();
     //L->LogInfo("setting grid with string " + s);
     grid->forEachSquare([&](ChessSquare* square, int x, int y) {
         int index = y* 7 + x;
@@ -369,7 +421,7 @@ void Connect4::setStateString(const std::string &s, Grid* grid)
 //based on state string, uses overloaded findlowest based on state string
 std::vector<int> Connect4::ValidMoves(const std::string &s) {
     vector<int> results;
-    for(int i = 0; i < 6; i++) { //here i = column and index of vector
+    for(int i = 0; i < 7; i++) { //here i = column and index of vector
         int lowest = findLowest(i, s);
         results.push_back(lowest);
     }
@@ -381,15 +433,17 @@ std::vector<int> Connect4::ValidMoves(const std::string &s) {
 //
 void Connect4::updateAI() 
 {
-    //NEED TO CHANGE TO ONLY LOOK AT VALID MOVES IN NEGAMAX
-    int bestVal = -1000;
+
+    
+    int bestVal = -10000;
     BitHolder* bestMove = nullptr;
     std::string state = stateString();
     Logger *L = Logger::getInstance();
+    L->LogInfo("F10 is thinking...");
     vector<int> moves = ValidMoves(state);
     //instead of traversing all cells, just traverse those with the cordinates [index], value in moves
-    for(int i = 0; i < 6; i++) {
-        if(moves[i] == NULL) { //skip this column if moves[i]
+    for(int i = 0; i < 7; i++) {
+        if(moves[i] == -1) { //skip this column if moves[i]
             continue;
         }
         int index = moves[i] * 7 + i; 
@@ -399,7 +453,7 @@ void Connect4::updateAI()
         } else {
                 state[index] = '1';
         }
-            L->LogGameEvent("evaluating x: " + to_string(i) + " y: " + to_string(moves[i]));
+            L->LogInfo("evaluating x: " + to_string(i) + " y: " + to_string(moves[i]));
             int moveVal = -negamax(state, 0, HUMAN_PLAYER, -1000, 1000);
             // Undo the move
             state[index] = '0';
@@ -410,14 +464,14 @@ void Connect4::updateAI()
                 bestVal = moveVal;
             }
     }
-    
-    
+
 
     // Make the best move
     if(bestMove) {
         if(actionForEmptyHolder(*bestMove)) {
         }
     }
+    L->LogGameEvent("Your turn");
 }
 
 //not sure this same simplicity can be done to check for draw
@@ -428,147 +482,156 @@ bool Connect4::isAIBoardFull(const std::string& state) {
 
 //this function doesn't check for blocks, but I was told this wasn't nessecary to have better than random results
 int Connect4::evaluateAIBoard(const std::string& state, int playerColor) { //have to make member method to access the other methods
-    //create simulation grid
-    //change check direction to return how far they got before running out
-    //since only doing one direction, double counting won't happen, because it has to be the first one
-    //will double count partial strings, but do to orders of magnitude this should hopefully not cause too many problems
-    //2: +10; 3: +100; 4: +1000 and return
-    //grid will also now need to be passed for these functions
-    //variables for keeping track of score
-    int score = 0;
-    Logger *L = Logger::getInstance();
-    L->LogInfo("evaluating board with string " + state);
-    //playerColor should be -1/1 and should correspond to the results of getPlayerAt
-    //playerColor doesn't seem to correspond to player number, but I can derive that
-    int playerNum;
-    int opponentNum;
-    if(playerColor == HUMAN_PLAYER) {
-        playerNum = getHumanPlayer();
-        opponentNum = getAIPlayer();
-    } else {
-        playerNum = getAIPlayer();
-        opponentNum = getHumanPlayer();
-    }
-    Player *self = getPlayerAt(playerNum);
-    Player *opponent = getPlayerAt(opponentNum);
-    //create simGrid and initalize it
-    Grid *simGrid = new Grid(7,6);
-    setStateString(state, simGrid); //sets grid to look like state
-    //traverse simGrid
-    simGrid->forEachSquare([&](ChessSquare* square, int x, int y) {
-        
-        int index = y * 7 + x; //index of current square
-        Player *owner = ownerAt(index, simGrid); //owner of current square
-        int counter = 1;
-        if(owner != nullptr) { //if square has piece, check all its neighbors
-            L->LogInfo("evaluating x: " + to_string(x) + " y: " + to_string(y));
-            L->LogInfo("owner is " + to_string(owner->playerNumber()));
-            for(int i = 0; i < 8; i++) { //check all directions
-                int result = checkDirection(square, owner, index, counter, i, simGrid);
-                L->LogError("result of check " + to_string(i) + ": " + to_string(result));
-                if(owner == self) {
-                    if(result == 4) {
-                        score = 1000; //if there's a victory, don't need to bother with rest of the grid
-                        break; //use break because simGrid still needs to be destoryed
-                    } else if(result == 3) {
-                        score = score + 100;
-                    } else if(result == 2) {
-                        score = score + 10;
-                    }
-                } else { //if opponents in a rows were being calculated
-                    if(result == 4) {
-                        score = -1000; //if there is a loss, no need to bother with rest of the grid
-                        break;
-                    } else if(result == 3) {
-                        score = score + 100;
-                    } else if(result == 2) {
-                        score = score + 10;
-                    }
+    //thank you graeme
+    //Logger *L = Logger::getInstance();
+    //L->LogInfo("Evaluating board (string-based) for playerColor: " + to_string(playerColor));
 
-                }
+    // Determine 'self' and 'opponent' characters based on playerColor
+    // From setStateString and PieceForPlayer, we know:
+    //   String '1' == Human Player (playerNumber -1)
+    //   String '2' == AI Player (playerNumber 1)
+    //huh i thought the fact the code should be able to do AIvAI means when can't assume this. ask about it in 
+    //office hours if I can
+    char selfChar = (playerColor == AI_PLAYER) ? '2' : '1';
+    char oppChar = (playerColor == AI_PLAYER) ? '1' : '2';
+
+    int score = 0;
+    bool terminalFound = false;
+
+    // We only scan in 4 directions to prevent double-counting lines
+    const std::vector<int> directionsToScan = {
+        1, // East
+        2, // South
+        6, // South-East
+        7  // South-West
+    };
+
+    // === PASS 1: Check for a terminal (winning/losing) state ===
+    for (int i = 0; i < 42; ++i) {
+        if (terminalFound) break; // A win was found, stop scanning
+        
+        char ownerChar = state[i];
+        if (ownerChar == '0') continue; // Skip empty squares
+
+        for (int dir : directionsToScan) {
+            // Start counter at 1 (for the piece at state[i])
+            int result = checkDirectionString(i, 1, ownerChar, dir, state); 
+            
+            if (result == 4) {
+                // Found a 4-in-a-row. Assign max/min score and stop.
+                score = (ownerChar == selfChar) ? 1000 : -1000;
+                terminalFound = true;
+                break; // Stop checking directions for this square
             }
         }
-    });
+    }
 
+    // If we found a win or loss, return that score immediately.
+    // This fixes the bug of adding 2s/3s to a winning score.
+    if (terminalFound) {
+        //L->LogInfo("Terminal state found. Score: " + to_string(score));
+        return score;
+    }
 
-    //destroy simGrid after use
-    simGrid->forEachSquare([](ChessSquare* square, int x, int y) {
-        square->destroyBit();
-    });
-    delete(simGrid);
-    
-    //finally return score
+        // === PASS 2: No terminal state, so score threats (2s and 3s) ===
+    score = 0; // Reset score to calculate threats
+    for (int i = 0; i < 42; ++i) {
+        char ownerChar = state[i];
+        if (ownerChar == '0') continue;
+
+        for (int dir : directionsToScan) {
+            int result = checkDirectionString(i, 1, ownerChar, dir, state);
+            //terminal states have already been taken care of in teh previous pass
+            int val = 0;
+            if (result == 3) {
+                val = 100; // 3-in-a-row
+            } else if (result == 2) {
+                val = 10;  // 2-in-a-row
+            }
+
+            // Add to score if it's our piece, subtract if it's the opponent's
+            if (ownerChar == selfChar) {
+                score += val;
+            } else {
+                score -= val;
+            }
+        }
+    }
+
+    //L->LogInfo("Non-terminal state. Score: " + to_string(score));
     return score;
 }
+
 
 //
 // player is the current player's number (AI or human)
 //
 int Connect4::negamax(std::string& state, int depth, int playerColor, int alpha, int beta) 
 {
-    Logger *L = Logger::getInstance();
-    L->LogInfo("negamax called at depth " + to_string(depth) + " with color " + to_string(playerColor));
+    //Logger *L = Logger::getInstance();
+    //L->LogInfo("negamax called at depth " + to_string(depth) + " with color " + to_string(playerColor));
     if(isAIBoardFull(state)) { //check for draw first, as eval with give a non-zero value for a draw
         return 0; // Draw
     }
 
     int score = evaluateAIBoard(state, playerColor);
-    L->LogInfo("score is " + to_string(score));
+    //L->LogInfo("score is " + to_string(score));
     //max depth is 8
     //Caller has the opposite score from that of the playerColor based to eval
     if(depth >= _gameOptions.AIMAXDepth) {
-        L->LogInfo("Returning score because max depth has been reached");
+        //L->LogInfo("Returning score because max depth has been reached");
         return score;
     }
     if(score == 1000) {
-        L->LogInfo("returning score because victory (for calle) terminal state has been reached");
+        //L->LogInfo("returning score because victory (for calle) terminal state has been reached");
         return score;
     }
     if(score == -1000) {
-        L->LogInfo("returning score because loss (for calle) terminal state has been reached");
+        //L->LogInfo("returning score because loss (for calle) terminal state has been reached");
         return score;
     }
 
-    if(score == 0) { //my own kind of pruning, unsure if its a good idea
-        L->LogInfo("aborting path because either everything is perfectly balanced or there's not enough information");
-        return score;
-    }
+    //if(score == 0) { //my own kind of pruning, unsure if its a good idea
+        //L->LogInfo("aborting path because either everything is perfectly balanced or there's not enough information");
+        //return score;
+    //}
 
-    int bestVal = -1000; // Min value. repersents a loss
+    int bestVal = -10000; // Min value. copying added another zero, more than a loss?
     //only need to evaluate per free column
     vector<int> moves = ValidMoves(state);
     //instead of traversing all cells, just traverse those with the cordinates [index], value in moves
-    for(int i = 0; i < 6; i++) {
-        if(moves[i] == NULL) { //skip this column if moves[i]
+    for(int i = 0; i < 7; i++) {
+        if(moves[i] == -1) { //skip this column if moves[i]
             continue;
         }
         int index = moves[i] * 7 + i; 
-        L->LogInfo("Evaluating index " + to_string(index));
-        ChessSquare* square = _grid->getSquareByIndex(index);
+        //L->LogInfo("Evaluating index " + to_string(index));
         //set the cell to the current player's color
-        if(playerColor == 1) {
-            state[index] = 2;
+        if(playerColor == AI_PLAYER) { //change to AI_PLAYER from copying
+            state[index] = '2';
         } else {
-            state[index] = 1;
+            state[index] = '1';
         }
         score = -negamax(state, depth+1, -playerColor, -beta, -alpha); //-negamax takes care of score inversion
         //switch alpha and beta when recursing
-        L->LogGameEvent("Now back on depth " + to_string(depth) + " with color " + to_string(playerColor));
+        //L->LogGameEvent("Now back on depth " + to_string(depth) + " with color " + to_string(playerColor));
         //alpha beta pruning
+        state[index] = '0';
         if(score > bestVal) {
             bestVal = score;
-            if(score > alpha) {
-                alpha = score;
-            }
         }
-        if(score >= beta) {
-            L->LogInfo("pruning has occured");
-            state[i] = '0';
-            return bestVal;
+        if(bestVal > alpha) {
+            alpha = bestVal;
+        }
+        
+        if(alpha >= beta) {
+            //L->LogError("pruning has occured");
+            break;
         }
         // Undo the move for backtracking
-        state[i] = '0';
+        state[index] = '0';
     }
 
     return bestVal;
 }
+
